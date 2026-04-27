@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mawadi Pro - النسخة المستقرة</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f9; padding: 10px; margin: 0; }
+        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: 20px auto; }
+        h2 { color: #1a73e8; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .row { display: flex; gap: 10px; }
+        .add-btn { background: #28a745; width: 80px; font-size: 24px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        .total-box { margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 10px; text-align: center; font-weight: bold; }
+        #loginSection { display: block; }
+        #dashboard { display: none; }
+    </style>
+</head>
+<body>
+
+    <div id="loginSection" class="box">
+        <h2>Mawadi Pro</h2>
+        <input type="password" id="passInput" placeholder="كلمة السر (1234)">
+        <button id="loginBtn">دخول</button>
+    </div>
+
+    <div id="dashboard" class="box">
+        <h3>تسجيل المبيعات</h3>
+        <input type="text" id="itemName" placeholder="المادة">
+        <div class="row">
+            <input type="number" id="itemQty" placeholder="الكمية">
+            <input type="number" id="itemPrice" placeholder="السعر">
+            <button id="addBtn" class="add-btn">+</button>
+        </div>
+        <table>
+            <thead><tr><th>المادة</th><th>الكمية</th><th>السعر</th><th>المجموع</th></tr></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+        <div class="total-box">الإجمالي: <span id="grandTotal">0.00</span> د.ت</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        // لاحظ إضافة initializeFirestore هنا
+        import { initializeFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcpMfwmLy5uKIvwg2EBv0LooJ-fbwse3U",
+            authDomain: "mawadi-pro-ce232.firebaseapp.com",
+            projectId: "mawadi-pro-ce232",
+            storageBucket: "mawadi-pro-ce232.firebasestorage.app",
+            messagingSenderId: "444088722447",
+            appId: "1:444088722447:web:2099fc7690ceaba650ef7a"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        
+        // تعديل جوهري: إجبار Firestore على استخدام Long Polling لتجاوز حظر المتصفحات
+        const db = initializeFirestore(app, {
+            experimentalForceLongPolling: true
+        });
+
+        document.getElementById('loginBtn').onclick = () => {
+            if (document.getElementById('passInput').value === "1234") {
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                startListening();
+            }
+        };
+
+        document.getElementById('addBtn').onclick = async () => {
+            const name = document.getElementById('itemName').value;
+            const qty = parseFloat(document.getElementById('itemQty').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            if (name && qty && price) {
+                await addDoc(collection(db, "sales"), {
+                    name, qty, price, total: qty * price, timestamp: serverTimestamp()
+                });
+                document.getElementById('itemName').value = '';
+            }
+        };
+
+        function startListening() {
+            const q = query(collection(db, "sales"), orderBy("timestamp", "desc"));
+            onSnapshot(q, (snapshot) => {
+                let html = ''; let totalSum = 0;
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    totalSum += data.total || 0;
+                    html += `<tr><td>${data.name}</td><td>${data.qty}</td><td>${data.price}</td><td>${(data.total || 0).toFixed(2)}</td></tr>`;
+                });
+                document.getElementById('tableBody').innerHTML = html;
+                document.getElementById('grandTotal').innerText = totalSum.toFixed(2);
+            });
+        }
+    </script>
+</body>
+</html>
