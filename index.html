@@ -1,52 +1,92 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مغازة الغزالة - النواقص</title>
+    <title>مغازة الغزالة | النواقص</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f4f7f9; text-align: center; padding: 10px; }
-        .box { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 600px; margin: auto; }
-        button { width: 100%; padding: 12px; background: #1a73e8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 5px 0; }
-        .btn-green { background: #28a745; }
-        input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #eee; padding: 10px; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #f4f7f9; text-align: center; padding: 10px; }
+        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+        .logo-box img { width: 80px; border-radius: 10px; margin-bottom: 10px; }
+        input { width: 90%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 16px; }
+        button { width: 90%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 5px 0; color: white; font-size: 16px; }
+        .btn-scan { background-color: #28a745; }
+        .btn-add { background-color: #007bff; }
+        .btn-excel { background-color: #fd7e14; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: center; }
+        th { background-color: #007bff; color: white; }
+        .delete-btn { background: #dc3545; padding: 5px 10px; border-radius: 5px; font-size: 12px; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <img src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png" width="80">
+<div class="container">
+    <div class="logo-box">
+        <img src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png" alt="Logo">
         <h2>مغازة الغزالة</h2>
-        <div id="reader" style="width: 100%; display:none;"></div>
-        <button class="btn-green" onclick="startScan()">📸 فتح ماسح الباركود</button>
-        <input type="text" id="itemName" placeholder="اسم المادة">
-        <input type="text" id="itemCode" placeholder="الكود">
-        <button onclick="addItem()">➕ إضافة للنواقص</button>
-        <table>
-            <thead><tr><th>المادة</th><th>الكود</th></tr></thead>
-            <tbody id="tableBody"></tbody>
-        </table>
     </div>
-    <script>
-        function startScan() {
-            document.getElementById('reader').style.display='block';
-            const scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
-                document.getElementById('itemCode').value = txt;
-                scanner.stop();
-                document.getElementById('reader').style.display='none';
-            });
-        }
-        function addItem() {
-            const name = document.getElementById('itemName').value;
-            const code = document.getElementById('itemCode').value;
-            if(name && code) {
-                document.getElementById('tableBody').innerHTML += `<tr><td>${name}</td><td>${code}</td></tr>`;
-                document.getElementById('itemName').value = ''; document.getElementById('itemCode').value = '';
-            }
-        }
-    </script>
+    <div id="reader" style="width: 100%; display: none; border-radius: 10px; overflow: hidden; margin-bottom: 10px;"></div>
+    <button class="btn-scan" onclick="startScanner()">📸 فتح ماسح الباركود</button>
+    <input type="text" id="itemName" placeholder="اسم المادة (مثلاً: حليب)">
+    <input type="text" id="itemCode" placeholder="الكود (Barcode)">
+    <input type="text" id="provider" placeholder="اسم المزود">
+    <button class="btn-add" onclick="addItem()">➕ إضافة للنواقص</button>
+    <button class="btn-excel" onclick="exportToExcel()">📥 تصدير إلى Excel</button>
+    <table>
+        <thead>
+            <tr>
+                <th>حذف</th>
+                <th>المزود</th>
+                <th>المادة</th>
+                <th>الكود</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+<script>
+    let materials = [];
+    function addItem() {
+        const name = document.getElementById('itemName').value;
+        const code = document.getElementById('itemCode').value;
+        const prov = document.getElementById('provider').value;
+        if(!name) { alert("يرجى إدخال اسم المادة"); return; }
+        materials.push({ name, code, prov });
+        renderTable();
+        document.getElementById('itemName').value = '';
+        document.getElementById('itemCode').value = '';
+    }
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        materials.forEach((m, i) => {
+            tbody.innerHTML += `<tr>
+                <td><button class="delete-btn" onclick="materials.splice(${i},1);renderTable()">🗑️</button></td>
+                <td>${m.prov || '-'}</td>
+                <td>${m.name}</td>
+                <td>${m.code || '-'}</td>
+            </tr>`;
+        });
+    }
+    function startScanner() {
+        document.getElementById('reader').style.display = 'block';
+        const scanner = new Html5Qrcode("reader");
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
+            document.getElementById('itemCode').value = txt;
+            scanner.stop();
+            document.getElementById('reader').style.display = 'none';
+        }).catch(err => alert("خطأ في الكاميرا: " + err));
+    }
+    function exportToExcel() {
+        if(materials.length === 0) { alert("الجدول فارغ!"); return; }
+        const ws = XLSX.utils.json_to_sheet(materials);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "نواقص الغزالة");
+        XLSX.writeFile(wb, "Nawakis_Ghazzala.xlsx");
+    }
+</script>
 </body>
 </html>
