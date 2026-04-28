@@ -1,92 +1,318 @@
-
+Mawadi-pro 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مغازة الغزالة | النواقص</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f9; text-align: center; padding: 10px; }
-        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-        .logo-box img { width: 80px; border-radius: 10px; margin-bottom: 10px; }
-        input { width: 90%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; text-align: center; font-size: 16px; }
-        button { width: 90%; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin: 5px 0; color: white; font-size: 16px; }
-        .btn-scan { background-color: #28a745; }
-        .btn-add { background-color: #007bff; }
-        .btn-excel { background-color: #fd7e14; }
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; background: white; }
-        th, td { border: 1px solid #e0e0e0; padding: 10px; text-align: center; }
-        th { background-color: #007bff; color: white; }
-        .delete-btn { background: #dc3545; padding: 5px 10px; border-radius: 5px; font-size: 12px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mawadi-pro ERP + Barcode</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{font-family:Arial, sans-serif;background:#eef2f7;padding:15px}
+.container{background:#fff;padding:10px;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #ddd;padding:8px;text-align:center}
+th{background:#007bff;color:#fff}
+button{margin:3px;padding:6px 10px;border:none;border-radius:5px;background:#007bff;color:#fff;cursor:pointer}
+input,select{padding:6px;margin:3px}
+.logo{width:80px;border-radius:10px}
+#loginBox{max-width:300px;margin:auto;margin-top:80px;text-align:center}
+
+/* 鬲賳爻賷賯 氐賮丨丞 丕賱賳賵丕賯氐 A4 */
+#missingPage { display: none; position: absolute; top: 0; left: 0; width: 100%; min-height: 100vh; background: #f4f4f4; z-index: 9999; padding: 20px;}
+#printableArea { background: white; width: 210mm; min-height: 290mm; margin: auto; padding: 20mm; box-sizing: border-box; border: 1px solid #eee;}
+.pdf-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; margin-bottom: 20px;}
+.pdf-table { width: 100%; border: 1px solid #000; border-collapse: collapse; }
+.pdf-table th { background: #f2f2f2 !important; color: black !important; border: 1px solid #000; }
+.pdf-table td { border: 1px solid #000; padding: 10px; }
+
+/* 鬲賳爻賷賯 丕賱賲丕爻丨 */
+#reader { width: 100%; max-width: 400px; margin: auto; display: none; border: 2px solid #007bff; border-radius: 10px; overflow: hidden; }
+.qty-controls { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.btn-qty { background: #28a745; width: 25px; height: 25px; padding: 0; }
+.btn-minus { background: #dc3545; }
+</style>
 </head>
+
 <body>
-<div class="container">
-    <div class="logo-box">
-        <img src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png" alt="Logo">
-        <h2>مغازة الغزالة</h2>
-    </div>
-    <div id="reader" style="width: 100%; display: none; border-radius: 10px; overflow: hidden; margin-bottom: 10px;"></div>
-    <button class="btn-scan" onclick="startScanner()">📸 فتح ماسح الباركود</button>
-    <input type="text" id="itemName" placeholder="اسم المادة (مثلاً: حليب)">
-    <input type="text" id="itemCode" placeholder="الكود (Barcode)">
-    <input type="text" id="provider" placeholder="اسم المزود">
-    <button class="btn-add" onclick="addItem()">➕ إضافة للنواقص</button>
-    <button class="btn-excel" onclick="exportToExcel()">📥 تصدير إلى Excel</button>
-    <table>
-        <thead>
-            <tr>
-                <th>حذف</th>
-                <th>المزود</th>
-                <th>المادة</th>
-                <th>الكود</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+
+<div id="loginBox" class="container">
+<h3>馃攼 Login</h3>
+<input id="user" placeholder="User"><br>
+<input id="pass" type="password" placeholder="Pass"><br>
+<button onclick="login()">Login</button>
 </div>
+
+<div id="app" style="display:none">
+
+<div style="text-align:center;margin-bottom:10px">
+<img id="logoPreview" class="logo"><br>
+<h2 id="shopName"></h2>
+<input id="shopInput" placeholder="丕爻賲 丕賱賲丨賱">
+<button onclick="saveShopName()">馃捑 丨賮馗 丕賱丕爻賲</button>
+</div>
+
+<div class="container">
+<div id="reader"></div> <button onclick="startScanner()" style="background:#28a745">馃摳 賮鬲丨 賲丕爻丨 丕賱亘丕乇賰賵丿</button>
+<button id="stopBtn" onclick="stopScanner()" style="display:none; background:#dc3545">鉂� 廿睾賱丕賯 丕賱賰丕賲賷乇丕</button>
+<br>
+<input id="name" placeholder="丕爻賲 丕賱賲丕丿丞">
+<input id="code" placeholder="丕賱賰賵丿">
+<input id="four" placeholder="丕賱賲夭賵丿">
+<select id="supplierDropdown" onchange="selectSupplier()"></select>
+<button onclick="addMaterial()">鉃� 廿囟丕賮丞</button>
+<br>
+<input id="searchInput" placeholder="馃攷 亘丨孬 亘丕賱丕爻賲 兀賵 丕賱賰賵丿..." oninput="renderTable()">
+<button onclick="resetSearch()">馃攧 Reset</button>
+<h4 id="counterBox"></h4>
+<br>
+<input type="file" id="excelFile" accept=".xlsx" style="display:none" onchange="importExcel(event)">
+<button onclick="document.getElementById('excelFile').click()">馃摜 Import Excel</button>
+<button onclick="exportExcelFile()">馃摛 Export Excel</button>
+<button onclick="backupJSON()">馃捑 Backup</button>
+<button onclick="restoreJSON()">鈾伙笍 Restore</button>
+<br>
+<button onclick="showMissingPage()" style="background:#28a745">馃搵 氐賮丨丞 丕賱賳賵丕賯氐</button>
+
+<table>
+<thead>
+<tr>
+<th>丕賱賰賵丿</th>
+<th>丕賱丕爻賲</th>
+<th>丕賱賲夭賵丿</th>
+<th>丕賱賰賲賷丞 (賳賯氐)</th>
+<th>鬲毓丿賷賱/丨匕賮</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+</div>
+</div>
+
+<div id="missingPage">
+    <div id="printableArea">
+        <div class="pdf-header">
+            <div style="text-align: right;"><h2 id="shopName2" style="margin:0; color:#007bff;"></h2><p id="dateTime"></p></div>
+            <img id="logoPreview2" class="logo">
+        </div>
+        <div style="text-align:center; background:#007bff; color:white; padding:10px; margin:20px 0;"><h3>賯丕卅賲丞 胤賱亘丕鬲 丕賱賲賵丕丿 丕賱賳丕賯氐丞</h3></div>
+        <div id="supplierTitle" style="font-weight:bold; margin-bottom:10px;"></div>
+        <table class="pdf-table">
+            <thead><tr><th>丕賱賲丕丿丞</th><th>丕賱賰賵丿</th><th>丕賱賰賲賷丞</th></tr></thead>
+            <tbody id="missingTable"></tbody>
+        </table>
+    </div>
+    <div style="text-align:center; margin-top:20px;">
+        <select id="filterSupplier" onchange="renderMissingTable()"></select>
+        <button onclick="exportMissingPDF()" style="background:#dc3545">馃搫 鬲丨賲賷賱 PDF</button>
+        <button onclick="shareMissingPageWhatsApp()" style="background:#25D366">馃摫 WhatsApp</button>
+        <button onclick="closeMissingPage()" style="background:#666">乇噩賵毓</button>
+    </div>
+</div>
+
 <script>
-    let materials = [];
-    function addItem() {
-        const name = document.getElementById('itemName').value;
-        const code = document.getElementById('itemCode').value;
-        const prov = document.getElementById('provider').value;
-        if(!name) { alert("يرجى إدخال اسم المادة"); return; }
-        materials.push({ name, code, prov });
-        renderTable();
-        document.getElementById('itemName').value = '';
-        document.getElementById('itemCode').value = '';
-    }
-    function renderTable() {
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = '';
-        materials.forEach((m, i) => {
-            tbody.innerHTML += `<tr>
-                <td><button class="delete-btn" onclick="materials.splice(${i},1);renderTable()">🗑️</button></td>
-                <td>${m.prov || '-'}</td>
-                <td>${m.name}</td>
-                <td>${m.code || '-'}</td>
-            </tr>`;
+let materials = JSON.parse(localStorage.getItem("materials") || "[]");
+let html5QrCode;
+
+function login(){
+    if(document.getElementById("user").value==="admin" && document.getElementById("pass").value==="1234"){
+        document.getElementById("loginBox").style.display="none";
+        document.getElementById("app").style.display="block";
+        loadData();
+    } else alert("禺胤兀");
+}
+
+// 賵馗賷賮丞 賲丕爻丨 丕賱亘丕乇賰賵丿
+function startScanner() {
+    document.getElementById("reader").style.display = "block";
+    document.getElementById("stopBtn").style.display = "inline-block";
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        (decodedText) => {
+            document.getElementById("code").value = decodedText;
+            document.getElementById("searchInput").value = decodedText;
+            renderTable();
+            stopScanner();
+            alert("鬲賲 賯乇丕亍丞 丕賱賰賵丿: " + decodedText);
+        }
+    ).catch(err => alert("丕賱賰丕賲賷乇丕 賱丕 鬲毓賲賱 兀賵 賲丨噩賵亘丞"));
+}
+
+function stopScanner() {
+    if(html5QrCode) {
+        html5QrCode.stop().then(() => {
+            document.getElementById("reader").style.display = "none";
+            document.getElementById("stopBtn").style.display = "none";
         });
     }
-    function startScanner() {
-        document.getElementById('reader').style.display = 'block';
-        const scanner = new Html5Qrcode("reader");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
-            document.getElementById('itemCode').value = txt;
-            scanner.stop();
-            document.getElementById('reader').style.display = 'none';
-        }).catch(err => alert("خطأ في الكاميرا: " + err));
+}
+
+function addMaterial() {
+    const n = document.getElementById("name").value;
+    if(!n) return;
+    materials.push({ 
+        id: Date.now(), 
+        name: n, 
+        code: document.getElementById("code").value, 
+        four: document.getElementById("four").value,
+        qty: 0 
+    });
+    saveAndRefresh();
+    clearInputs();
+}
+
+function changeQty(id, val) {
+    const m = materials.find(x => x.id === id);
+    m.qty = Math.max(0, (m.qty || 0) + val);
+    saveAndRefresh();
+}
+
+function saveAndRefresh() {
+    localStorage.setItem("materials", JSON.stringify(materials));
+    renderTable();
+    updateSuppliersList();
+}
+
+function renderTable() {
+    const search = document.getElementById("searchInput").value.toLowerCase();
+    const tbody = document.getElementById("table");
+    tbody.innerHTML = "";
+    materials.filter(m => m.name.toLowerCase().includes(search) || m.code.toLowerCase().includes(search)).forEach(m => {
+        tbody.innerHTML += `<tr>
+            <td>${m.code}</td>
+            <td>${m.name}</td>
+            <td>${m.four}</td>
+            <td>
+                <div class="qty-controls">
+                    <button class="btn-qty btn-minus" onclick="changeQty(${m.id}, -1)">-</button>
+                    <span style="font-weight:bold">${m.qty || 0}</span>
+                    <button class="btn-qty" onclick="changeQty(${m.id}, 1)">+</button>
+                </div>
+            </td>
+            <td>
+                <button style="background:#ffc107;color:black" onclick="editMaterial(${m.id})">馃摑</button>
+                <button style="background:#dc3545" onclick="deleteMaterial(${m.id})">馃棏锔�</button>
+            </td>
+        </tr>`;
+    });
+    document.getElementById("counterBox").innerText = "毓丿丿 丕賱賲賵丕丿: " + materials.length;
+}
+
+function editMaterial(id) {
+    const m = materials.find(x => x.id === id);
+    const n = prompt("丕爻賲 丕賱賲丕丿丞:", m.name);
+    if(n) {
+        m.name = n; m.code = prompt("丕賱賰賵丿:", m.code); m.four = prompt("丕賱賲夭賵丿:", m.four);
+        saveAndRefresh();
     }
-    function exportToExcel() {
-        if(materials.length === 0) { alert("الجدول فارغ!"); return; }
-        const ws = XLSX.utils.json_to_sheet(materials);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "نواقص الغزالة");
-        XLSX.writeFile(wb, "Nawakis_Ghazzala.xlsx");
-    }
+}
+
+function deleteMaterial(id) {
+    if(confirm("丨匕賮責")) { materials = materials.filter(m => m.id !== id); saveAndRefresh(); }
+}
+
+function selectSupplier() { document.getElementById("four").value = document.getElementById("supplierDropdown").value; }
+
+function updateSuppliersList() {
+    const sups = [...new Set(materials.map(m => m.four))].filter(s => s);
+    ["supplierDropdown", "filterSupplier"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) {
+            el.innerHTML = '<option value="all">賰賱 丕賱賲夭賵丿賷賳</option>';
+            sups.forEach(s => el.innerHTML += `<option value="${s}">${s}</option>`);
+        }
+    });
+}
+
+function showMissingPage() {
+    document.getElementById("app").style.display="none";
+    document.getElementById("missingPage").style.display="block";
+    document.getElementById("dateTime").innerText = "丕賱鬲丕乇賷禺: " + new Date().toLocaleString('ar-TN');
+    renderMissingTable();
+}
+
+function renderMissingTable() {
+    const sup = document.getElementById("filterSupplier").value;
+    document.getElementById("supplierTitle").innerText = "丕賱賲夭賵丿: " + (sup === "all" ? "丕賱賰賱" : sup);
+    const tbody = document.getElementById("missingTable");
+    tbody.innerHTML = "";
+    materials.filter(m => (sup === "all" || m.four === sup) && m.qty > 0).forEach(m => {
+        tbody.innerHTML += `<tr><td>${m.name}</td><td>${m.code}</td><td>${m.qty}</td></tr>`;
+    });
+}
+
+function exportMissingPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    html2canvas(document.getElementById("printableArea")).then(canvas => {
+        const img = canvas.toDataURL('image/png');
+        const w = doc.internal.pageSize.getWidth();
+        const h = (canvas.height * w) / canvas.width;
+        doc.addImage(img, 'PNG', 0, 0, w, h);
+        doc.save("Nawakis.pdf");
+    });
+}
+
+function shareMissingPageWhatsApp() {
+    const sup = document.getElementById("filterSupplier").value;
+    let msg = `*賳賵丕賯氐: ${localStorage.getItem("shopName")}*\n`;
+    materials.filter(m => (sup === "all" || m.four === sup) && m.qty > 0).forEach(m => msg += `鈥� ${m.name} (${m.qty})\n`);
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+}
+
+function saveShopName() { localStorage.setItem("shopName", document.getElementById("shopInput").value); loadData(); }
+function uploadLogo() {
+    const file = document.getElementById("logoInput").files[0];
+    const r = new FileReader();
+    r.onloadend = () => { localStorage.setItem("shopLogo", r.result); loadData(); };
+    if(file) r.readAsDataURL(file);
+}
+
+function loadData() {
+    const n = localStorage.getItem("shopName") || "丕賱賲丨賱";
+    document.getElementById("shopName").innerText = n; document.getElementById("shopName2").innerText = n;
+    const l = localStorage.getItem("shopLogo");
+    if(l) { document.getElementById("logoPreview").src = l; document.getElementById("logoPreview2").src = l; }
+    renderTable(); updateSuppliersList();
+}
+
+function exportExcelFile() {
+    XLSX.writeFile(XLSX.utils.book_append_sheet(XLSX.utils.book_new(), XLSX.utils.json_to_sheet(materials), "Data"), "data.xlsx");
+}
+
+function importExcel(e) {
+    const r = new FileReader();
+    r.onload = (ev) => {
+        materials = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(ev.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(ev.target.result), {type:'array'}).SheetNames[0]]);
+        saveAndRefresh();
+    };
+    r.readAsArrayBuffer(e.target.files[0]);
+}
+
+function backupJSON() {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(materials)], {type: "application/json"})); a.download = "backup.json"; a.click();
+}
+
+function restoreJSON() {
+    const i = document.createElement('input'); i.type = 'file';
+    i.onchange = e => {
+        const r = new FileReader();
+        r.onload = ev => { materials = JSON.parse(ev.target.result); saveAndRefresh(); };
+        r.readAsText(e.target.files[0]);
+    };
+    i.click();
+}
+
+function clearInputs() { document.getElementById("name").value=""; document.getElementById("code").value=""; document.getElementById("four").value=""; }
+function closeMissingPage() { document.getElementById("missingPage").style.display="none"; document.getElementById("app").style.display="block"; }
+function resetSearch() { document.getElementById("searchInput").value = ""; renderTable(); }
 </script>
+
 </body>
 </html>
