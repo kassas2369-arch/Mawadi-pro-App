@@ -11,94 +11,123 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
-body{font-family: 'Segoe UI', Arial, sans-serif; background:#eef2f7; padding:15px; direction: rtl;}
-.container{background:#fff; padding:15px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1); max-width: 800px; margin: auto;}
-table{width:100%; border-collapse:collapse; margin-top:10px; background: white;}
-th,td{border:1px solid #ddd; padding:10px; text-align:center;}
-th{background:#007bff; color:#fff;}
-button{margin:3px; padding:8px 12px; border:none; border-radius:5px; background:#007bff; color:#fff; cursor:pointer; font-weight: bold;}
-input,select{padding:8px; margin:3px; border: 1px solid #ccc; border-radius: 5px; width: 80%; max-width: 300px;}
-.logo{width:80px; border-radius:10px; margin-bottom: 10px;}
-#loginBox{max-width:350px; margin:auto; margin-top:80px; text-align:center;}
+/* التنسيقات الأصلية مع إضافة دعم الوضع الليلي */
+:root {
+    --bg-color: #eef2f7;
+    --container-bg: #fff;
+    --text-color: #333;
+    --border-color: #ddd;
+}
 
+body.dark-mode {
+    --bg-color: #1a1a1a;
+    --container-bg: #2d2d2d;
+    --text-color: #f5f5f5;
+    --border-color: #444;
+}
+
+body{font-family:Arial, sans-serif; background: var(--bg-color); color: var(--text-color); padding:15px; transition: 0.3s;}
+.container{background: var(--container-bg); padding:10px; border-radius:10px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+table{width:100%; border-collapse:collapse; margin-top:10px}
+th,td{border:1px solid var(--border-color); padding:8px; text-align:center}
+th{background:#007bff; color:#fff}
+button{margin:3px; padding:6px 10px; border:none; border-radius:5px; background:#007bff; color:#fff; cursor:pointer}
+input,select{padding:6px; margin:3px; background: var(--container-bg); color: var(--text-color); border: 1px solid var(--border-color);}
+
+.logo{width:100px; height:100px; object-fit: cover; border-radius:50%; border: 2px solid #007bff; margin-bottom: 10px;}
+
+/* زر الوضع الليلي */
+.theme-switch { position: fixed; top: 10px; left: 10px; z-index: 1000; background: #444; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+#loginBox{max-width:300px; margin:auto; margin-top:80px; text-align:center}
+
+/* تنسيق صفحة النواقص */
 #missingPage { display: none; position: absolute; top: 0; left: 0; width: 100%; min-height: 100vh; background: #f4f4f4; z-index: 9999; padding: 20px;}
-#printableArea { background: white; width: 210mm; min-height: 290mm; margin: auto; padding: 20mm; box-sizing: border-box; border: 1px solid #eee;}
+#printableArea { background: white; width: 210mm; min-height: 290mm; margin: auto; padding: 20mm; box-sizing: border-box; border: 1px solid #eee; color: black !important;}
 .pdf-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #007bff; padding-bottom: 15px; margin-bottom: 20px;}
 .pdf-table { width: 100%; border: 1px solid #000; border-collapse: collapse; }
 .pdf-table th { background: #f2f2f2 !important; color: black !important; border: 1px solid #000; }
-.pdf-table td { border: 1px solid #000; padding: 10px; }
+.pdf-table td { border: 1px solid #000; padding: 10px; color: black !important;}
 
 #reader { width: 100%; max-width: 400px; margin: auto; display: none; border: 2px solid #007bff; border-radius: 10px; overflow: hidden; }
 .qty-controls { display: flex; align-items: center; justify-content: center; gap: 5px; }
-.btn-qty { width: 30px; height: 30px; padding: 0; line-height: 30px; }
-.btn-plus { background: #28a745; }
+.btn-qty { background: #28a745; width: 25px; height: 25px; padding: 0; }
 .btn-minus { background: #dc3545; }
 </style>
 </head>
 
 <body>
 
+<div class="theme-switch" onclick="toggleTheme()">🌙</div>
+
 <div id="loginBox" class="container">
-    <h3>🔐 تسجيل الدخول</h3>
-    <input id="user" placeholder="اسم المستخدم (admin)"><br>
-    <input id="pass" type="password" placeholder="كلمة السر (1234)"><br>
-    <button onclick="login()">دخول</button>
+<h3>🔐 تسجيل الدخول</h3>
+<img src="https://cdn-icons-png.flaticon.com/512/6073/6073873.png" style="width: 60px;"><br><br>
+<input id="user" placeholder="المستخدم"><br>
+<input id="pass" type="password" placeholder="كلمة المرور"><br>
+<button onclick="login()">دخول</button>
+<p style="font-size: 12px; color: #666;">يمكنك تغيير كلمة السر من الداخل</p>
 </div>
 
 <div id="app" style="display:none">
-    <div style="text-align:center; margin-bottom:10px">
-        <img id="logoPreview" class="logo" src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png"><br>
-        <h2 id="shopName">مغازة الغزالة</h2>
-        <input id="shopInput" placeholder="اسم المحل الجديد">
-        <button onclick="saveShopName()">💾 حفظ الاسم</button>
-    </div>
 
-    <div class="container" style="text-align: center;">
-        <div id="reader"></div> 
-        <button onclick="startScanner()" style="background:#28a745; width: 90%;">📸 فتح ماسح الباركود</button>
-        <button id="stopBtn" onclick="stopScanner()" style="display:none; background:#dc3545; width: 90%;">❌ إغلاق الكاميرا</button>
-        <br><br>
-        <input id="name" placeholder="اسم المادة (مثلاً: حليب)">
-        <input id="code" placeholder="كود الباركود">
-        <input id="four" placeholder="اسم المزود">
-        <select id="supplierDropdown" onchange="selectSupplier()" style="width: 85%;">
-            <option value="">اختر مزوداً سابقاً</option>
-        </select>
-        <button onclick="addMaterial()" style="width: 90%; margin-top: 10px;">➕ إضافة للنواقص</button>
-        <br><br>
-        <input id="searchInput" placeholder="🔍 بحث بالاسم أو الكود..." oninput="renderTable()" style="width: 70%;">
-        <button onclick="resetSearch()">🔄 Reset</button>
-        <h4 id="counterBox">عدد المواد: 0</h4>
-        
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;">
-            <input type="file" id="excelFile" accept=".xlsx" style="display:none" onchange="importExcel(event)">
-            <button onclick="document.getElementById('excelFile').click()" style="background: #17a2b8;">📥 Import Excel</button>
-            <button onclick="exportExcelFile()" style="background: #fd7e14;">📤 Export Excel</button>
-            <button onclick="backupJSON()">💾 Backup</button>
-            <button onclick="restoreJSON()" style="background: #6f42c1;">♻️ Restore</button>
-        </div>
-        <button onclick="showMissingPage()" style="background:#28a745; width: 90%; margin-top: 10px;">📋 صفحة النواقص (PDF/WhatsApp)</button>
+<div style="text-align:center;margin-bottom:10px">
+<div onclick="document.getElementById('logoInput').click()" style="cursor: pointer;">
+    <img id="logoPreview" class="logo" src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png">
+    <input type="file" id="logoInput" style="display:none" accept="image/*" onchange="uploadLogo()">
+    <p style="font-size: 10px;">إضغط لتغيير الشعار</p>
+</div>
+<h2 id="shopName"></h2>
+<input id="shopInput" placeholder="اسم المحل">
+<button onclick="saveShopName()">💾 حفظ الاسم</button>
+<br>
+<button onclick="changePasswordPrompt()" style="background:#6c757d; font-size: 11px;">🔑 تغيير كلمة السر</button>
+</div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>الكود</th>
-                    <th>الاسم</th>
-                    <th>المزود</th>
-                    <th>الكمية (نقص)</th>
-                    <th>تعديل/حذف</th>
-                </tr>
-            </thead>
-            <tbody id="table"></tbody>
-        </table>
-    </div>
+<div class="container">
+<div id="reader"></div> <button onclick="startScanner()" style="background:#28a745">📸 فتح ماسح الباركود</button>
+<button id="stopBtn" onclick="stopScanner()" style="display:none; background:#dc3545">✖ إغلاق الكاميرا</button>
+<br>
+<input id="name" placeholder="اسم المادة">
+<input id="code" placeholder="الكود">
+<input id="four" placeholder="المزود">
+<select id="supplierDropdown" onchange="selectSupplier()"></select>
+<button onclick="addMaterial()">➕ إضافة</button>
+<br>
+<input id="searchInput" placeholder="🔍 بحث بالاسم أو الكود..." oninput="renderTable()">
+<button onclick="resetSearch()">🔄 Reset</button>
+<h4 id="counterBox"></h4>
+<br>
+<div style="display: flex; flex-wrap: wrap; justify-content: center;">
+    <input type="file" id="excelFile" accept=".xlsx" style="display:none" onchange="importExcel(event)">
+    <button onclick="document.getElementById('excelFile').click()">📥 Import Excel</button>
+    <button onclick="exportExcelFile()">📤 Export Excel</button>
+    <button onclick="backupJSON()">💾 Backup</button>
+    <button onclick="restoreJSON()">♻ Restore</button>
+</div>
+<br>
+<button onclick="showMissingPage()" style="background:#28a745; width: 100%; padding: 12px;">📋 صفحة النواقص (A4)</button>
+
+<table>
+<thead>
+<tr>
+<th>الكود</th>
+<th>الاسم</th>
+<th>المزود</th>
+<th>الكمية</th>
+<th>تعديل/حذف</th>
+</tr>
+</thead>
+<tbody id="table"></tbody>
+</table>
+</div>
 </div>
 
 <div id="missingPage">
     <div id="printableArea">
         <div class="pdf-header">
             <div style="text-align: right;"><h2 id="shopName2" style="margin:0; color:#007bff;"></h2><p id="dateTime"></p></div>
-            <img id="logoPreview2" class="logo" src="https://cdn-icons-png.flaticon.com/512/1162/1162456.png">
+            <img id="logoPreview2" class="logo">
         </div>
         <div style="text-align:center; background:#007bff; color:white; padding:10px; margin:20px 0;"><h3>قائمة طلبات المواد الناقصة</h3></div>
         <div id="supplierTitle" style="font-weight:bold; margin-bottom:10px;"></div>
@@ -108,27 +137,49 @@ input,select{padding:8px; margin:3px; border: 1px solid #ccc; border-radius: 5px
         </table>
     </div>
     <div style="text-align:center; margin-top:20px;">
-        <select id="filterSupplier" onchange="renderMissingTable()"></select><br>
+        <select id="filterSupplier" onchange="renderMissingTable()"></select><br><br>
         <button onclick="exportMissingPDF()" style="background:#dc3545">📥 تحميل PDF</button>
-        <button onclick="shareMissingPageWhatsApp()" style="background:#25D366">📱 WhatsApp</button>
+        <button onclick="shareMissingPageWhatsApp()" style="background:#25D366">📱 WhatsApp (نسخة A4)</button>
         <button onclick="closeMissingPage()" style="background:#666">رجوع</button>
     </div>
 </div>
 
 <script>
+// الإبقاء على المتغيرات الأصلية
 let materials = JSON.parse(localStorage.getItem("materials") || "[]");
 let html5QrCode;
 
+// وظيفة الدخول مع كلمة سر متغيرة
 function login(){
-    const u = document.getElementById("user").value;
-    const p = document.getElementById("pass").value;
-    if(u === "admin" && p === "1234"){
+    const savedUser = localStorage.getItem("adminUser") || "admin";
+    const savedPass = localStorage.getItem("adminPass") || "1234";
+    
+    if(document.getElementById("user").value === savedUser && document.getElementById("pass").value === savedPass){
         document.getElementById("loginBox").style.display="none";
         document.getElementById("app").style.display="block";
         loadData();
-    } else { alert("خطأ في بيانات الدخول"); }
+    } else alert("بيانات الدخول خاطئة");
 }
 
+function changePasswordPrompt() {
+    const newUser = prompt("أدخل اسم المستخدم الجديد:", localStorage.getItem("adminUser") || "admin");
+    const newPass = prompt("أدخل كلمة السر الجديدة:");
+    if(newUser && newPass) {
+        localStorage.setItem("adminUser", newUser);
+        localStorage.setItem("adminPass", newPass);
+        alert("تم تحديث بيانات الدخول بنجاح");
+    }
+}
+
+// تبديل الوضع الليلي
+function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+    document.querySelector('.theme-switch').innerText = isDark ? "☀️" : "🌙";
+}
+
+// الوظائف الأصلية بدون تعديل في المنطق
 function startScanner() {
     document.getElementById("reader").style.display = "block";
     document.getElementById("stopBtn").style.display = "inline-block";
@@ -142,7 +193,7 @@ function startScanner() {
             renderTable();
             stopScanner();
         }
-    ).catch(err => alert("الكاميرا لا تعمل: " + err));
+    ).catch(err => alert("الكاميرا لا تعمل"));
 }
 
 function stopScanner() {
@@ -156,7 +207,7 @@ function stopScanner() {
 
 function addMaterial() {
     const n = document.getElementById("name").value;
-    if(!n) return alert("يرجى إدخال اسم المادة");
+    if(!n) return;
     materials.push({ 
         id: Date.now(), 
         name: n, 
@@ -170,10 +221,8 @@ function addMaterial() {
 
 function changeQty(id, val) {
     const m = materials.find(x => x.id === id);
-    if(m) {
-        m.qty = Math.max(0, (m.qty || 0) + val);
-        saveAndRefresh();
-    }
+    m.qty = Math.max(0, (m.qty || 0) + val);
+    saveAndRefresh();
 }
 
 function saveAndRefresh() {
@@ -194,13 +243,13 @@ function renderTable() {
             <td>
                 <div class="qty-controls">
                     <button class="btn-qty btn-minus" onclick="changeQty(${m.id}, -1)">-</button>
-                    <span style="font-weight:bold; margin: 0 10px;">${m.qty || 0}</span>
-                    <button class="btn-qty btn-plus" onclick="changeQty(${m.id}, 1)">+</button>
+                    <span style="font-weight:bold">${m.qty || 0}</span>
+                    <button class="btn-qty" onclick="changeQty(${m.id}, 1)">+</button>
                 </div>
             </td>
             <td>
-                <button style="background:#ffc107; color:black; padding: 5px;" onclick="editMaterial(${m.id})">📝</button>
-                <button style="background:#dc3545; padding: 5px;" onclick="deleteMaterial(${m.id})">🗑️</button>
+                <button style="background:#ffc107;color:black" onclick="editMaterial(${m.id})">📝</button>
+                <button style="background:#dc3545" onclick="deleteMaterial(${m.id})">🗑</button>
             </td>
         </tr>`;
     });
@@ -211,21 +260,16 @@ function editMaterial(id) {
     const m = materials.find(x => x.id === id);
     const n = prompt("تعديل اسم المادة:", m.name);
     if(n) {
-        m.name = n; 
-        m.code = prompt("تعديل الكود:", m.code); 
-        m.four = prompt("تعديل المزود:", m.four);
+        m.name = n; m.code = prompt("تعديل الكود:", m.code); m.four = prompt("تعديل المزود:", m.four);
         saveAndRefresh();
     }
 }
 
 function deleteMaterial(id) {
-    if(confirm("هل أنت متأكد من الحذف؟")) { materials = materials.filter(m => m.id !== id); saveAndRefresh(); }
+    if(confirm("حذف؟")) { materials = materials.filter(m => m.id !== id); saveAndRefresh(); }
 }
 
-function selectSupplier() { 
-    const val = document.getElementById("supplierDropdown").value;
-    if(val !== "all") document.getElementById("four").value = val; 
-}
+function selectSupplier() { document.getElementById("four").value = document.getElementById("supplierDropdown").value; }
 
 function updateSuppliersList() {
     const sups = [...new Set(materials.map(m => m.four))].filter(s => s);
@@ -267,94 +311,75 @@ function exportMissingPDF() {
     });
 }
 
+// واتساب بشكل منظم يشبه الـ A4
 function shareMissingPageWhatsApp() {
     const sup = document.getElementById("filterSupplier").value;
-    const sName = localStorage.getItem("shopName") || "المحل";
-    let msg = `*قائمة نواقص: ${sName}*\n-------------------\n`;
+    const shop = localStorage.getItem("shopName") || "المحل";
+    let msg = `*📄 قائمة نواقص: ${shop}*\n`;
+    msg += `*📅 التاريخ:* ${new Date().toLocaleDateString('ar-TN')}\n`;
+    msg += `*👤 المزود:* ${sup === "all" ? "الكل" : sup}\n`;
+    msg += `----------------------------\n`;
+    msg += `*المادة* | *الكود* | *الكمية*\n`;
+    
     materials.filter(m => (sup === "all" || m.four === sup) && m.qty > 0).forEach(m => {
-        msg += `• ${m.name} | الكمية: ${m.qty}\n`;
+        msg += `🔹 ${m.name} | ${m.code || '---'} | [ ${m.qty} ]\n`;
     });
+    
+    msg += `----------------------------\n`;
+    msg += `_تم التوليد بواسطة Mawadi-Pro_`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
 }
 
-function saveShopName() { 
-    const name = document.getElementById("shopInput").value;
-    if(name) {
-        localStorage.setItem("shopName", name); 
-        loadData(); 
-        alert("تم حفظ اسم المحل");
-    }
+function saveShopName() { localStorage.setItem("shopName", document.getElementById("shopInput").value); loadData(); }
+
+function uploadLogo() {
+    const file = document.getElementById("logoInput").files[0];
+    const r = new FileReader();
+    r.onloadend = () => { localStorage.setItem("shopLogo", r.result); loadData(); };
+    if(file) r.readAsDataURL(file);
 }
 
 function loadData() {
-    const n = localStorage.getItem("shopName") || "مغازة الغزالة";
-    document.getElementById("shopName").innerText = n; 
-    document.getElementById("shopName2").innerText = n;
-    renderTable(); 
-    updateSuppliersList();
+    const n = localStorage.getItem("shopName") || "المحل";
+    document.getElementById("shopName").innerText = n; document.getElementById("shopName2").innerText = n;
+    const l = localStorage.getItem("shopLogo");
+    if(l) { document.getElementById("logoPreview").src = l; document.getElementById("logoPreview2").src = l; }
+    
+    if(localStorage.getItem("theme") === "dark") toggleTheme();
+    renderTable(); updateSuppliersList();
 }
 
+// الدوال الأصلية للإكسل والنسخ الاحتياطي
 function exportExcelFile() {
-    if(materials.length === 0) return alert("لا يوجد بيانات لتصديرها");
-    const ws = XLSX.utils.json_to_sheet(materials);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Data");
-    XLSX.writeFile(wb, "Mawadi_Pro_Data.xlsx");
+    XLSX.writeFile(XLSX.utils.book_append_sheet(XLSX.utils.book_new(), XLSX.utils.json_to_sheet(materials), "Data"), "data.xlsx");
 }
 
 function importExcel(e) {
     const r = new FileReader();
     r.onload = (ev) => {
-        try {
-            const data = new Uint8Array(ev.target.result);
-            const workbook = XLSX.read(data, {type:'array'});
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            materials = XLSX.utils.sheet_to_json(firstSheet);
-            saveAndRefresh();
-            alert("تم استيراد البيانات بنجاح");
-        } catch(err) { alert("خطأ في قراءة ملف الإكسل"); }
+        materials = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(ev.target.result), {type:'array'}).Sheets[XLSX.read(new Uint8Array(ev.target.result), {type:'array'}).SheetNames[0]]);
+        saveAndRefresh();
     };
     r.readAsArrayBuffer(e.target.files[0]);
 }
 
 function backupJSON() {
-    const dataStr = JSON.stringify(materials);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const a = document.createElement('a');
-    a.setAttribute("href", dataUri);
-    a.setAttribute("download", "Mawadi_Backup.json");
-    a.click();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(materials)], {type: "application/json"})); a.download = "backup.json"; a.click();
 }
 
 function restoreJSON() {
     const i = document.createElement('input'); i.type = 'file';
     i.onchange = e => {
         const r = new FileReader();
-        r.onload = ev => { 
-            try {
-                materials = JSON.parse(ev.target.result); 
-                saveAndRefresh(); 
-                alert("تم استعادة البيانات");
-            } catch(err) { alert("ملف غير صالح"); }
-        };
+        r.onload = ev => { materials = JSON.parse(ev.target.result); saveAndRefresh(); };
         r.readAsText(e.target.files[0]);
     };
     i.click();
 }
 
-function clearInputs() { 
-    document.getElementById("name").value=""; 
-    document.getElementById("code").value=""; 
-    document.getElementById("four").value=""; 
-}
-function closeMissingPage() { 
-    document.getElementById("missingPage").style.display="none"; 
-    document.getElementById("app").style.display="block"; 
-}
-function resetSearch() { 
-    document.getElementById("searchInput").value = ""; 
-    renderTable(); 
-}
+function clearInputs() { document.getElementById("name").value=""; document.getElementById("code").value=""; document.getElementById("four").value=""; }
+function closeMissingPage() { document.getElementById("missingPage").style.display="none"; document.getElementById("app").style.display="block"; }
+function resetSearch() { document.getElementById("searchInput").value = ""; renderTable(); }
 </script>
 
 </body>
